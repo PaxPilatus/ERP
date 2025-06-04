@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: cbd-warenbestand-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SECRET_TOKEN
+        value: 420
+      - key: SESSION_SECRET
+        value: cbd-warenbestand-secret-key-2024
+      - key: N8N_TEST_URL
+        value: https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9 

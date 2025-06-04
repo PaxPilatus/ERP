@@ -10,11 +10,14 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy für Cloud-Hosting (Render, Heroku, etc.)
+app.set('trust proxy', 1);
+
 // Konfiguration
-const SECRET_TOKEN = '420';
-const SESSION_SECRET = 'cbd-warenbestand-secret-key-2024';
+const SECRET_TOKEN = process.env.SECRET_TOKEN || '420';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'cbd-warenbestand-secret-key-2024';
 // n8n.cloud Test-URL für alle Webhook-POSTs
-const N8N_TEST_URL = 'https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
+const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
 
 // Im Speicher Order-Status speichern
 const orderStatusMap = new Map();
@@ -35,8 +38,10 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Automatisch HTTPS für Production
-    maxAge: 24 * 60 * 60 * 1000 // 24 Stunden
+    secure: process.env.NODE_ENV === 'production', // HTTPS für Production
+    maxAge: 24 * 60 * 60 * 1000, // 24 Stunden
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    httpOnly: true // Sicherheit gegen XSS
   }
 }));
 
@@ -89,11 +94,18 @@ app.get('/login', (req, res) => {
   const token = req.query.token;
   
   console.log('🔐 Login-Versuch mit Token:', token ? 'Token vorhanden' : 'Kein Token');
+  console.log('🌍 Environment:', process.env.NODE_ENV);
+  console.log('🔒 Secure Cookie:', process.env.NODE_ENV === 'production');
   
   if (token === SECRET_TOKEN) {
     req.session.authenticated = true;
     console.log('✅ Login erfolgreich! Token korrekt:', token);
     console.log('🍪 Session erstellt, Weiterleitung zur Auswahl');
+    
+    // Debug: Session-Details für Cloud-Hosting
+    console.log('📊 Session ID:', req.sessionID);
+    console.log('🔧 Session:', JSON.stringify(req.session, null, 2));
+    
     res.redirect('/dashboard');
   } else if (token) {
     console.log('❌ Login fehlgeschlagen! Ungültiger Token:', token);

@@ -46,10 +46,16 @@ Im Render Dashboard unter "Environment":
 
 ```
 NODE_ENV=production
-SECRET_TOKEN=IhrGeheimerToken123
-SESSION_SECRET=cbd-warenbestand-geheim-2024
-N8N_TEST_URL=https://ihre-n8n-instanz.app.n8n.cloud/webhook/ihre-id
+SECRET_TOKEN=420
+SESSION_SECRET=cbd-warenbestand-secret-key-2024
+N8N_TEST_URL=https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9
 ```
+
+**⚠️ WICHTIG für Session-Cookies:**
+Diese Einstellungen beheben das Login-Problem auf HTTPS (Render):
+- `NODE_ENV=production` aktiviert HTTPS-Sessions
+- `SECRET_TOKEN=420` setzt den korrekten Login-Token
+- Trust Proxy ist in der App konfiguriert
 
 ### 5. Deploy starten
 - **"Create Web Service"** klicken
