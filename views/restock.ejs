@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CBD Warenbestand Auffüllen">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CBD Auffüllen">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">📦</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <p>Laden Sie ein Foto des aktuellen Warenbestands hoch</p>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="alert alert-info">
+                <strong>📸 Anleitung:</strong><br>
+                Machen Sie ein Foto des Warenbestands und laden Sie es hoch. 
+                Das System wird die Daten automatisch verarbeiten.
+            </div>
+            
+            <!-- Restock Form -->
+            <form action="/restock" method="POST" enctype="multipart/form-data" id="restockForm">
+                <!-- File Upload -->
+                <div class="form-group">
+                    <label for="photo" class="form-label">📷 Foto auswählen</label>
+                    <div class="file-upload">
+                        <input 
+                            type="file" 
+                            id="photo" 
+                            name="photo" 
+                            accept="image/*" 
+                            capture="environment"
+                            required
+                        >
+                        <label for="photo" class="file-upload-label" id="fileLabel">
+                            <div class="file-upload-icon">📷</div>
+                            <div id="fileText">
+                                <strong>Foto auswählen oder aufnehmen</strong><br>
+                                <small>Tippen Sie hier, um ein Foto zu machen oder aus der Galerie zu wählen</small>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- File Preview -->
+                <div id="filePreview" class="form-group" style="display: none;">
+                    <label class="form-label">🖼️ Vorschau</label>
+                    <div style="text-align: center;">
+                        <img id="previewImage" style="max-width: 100%; max-height: 200px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <div id="fileInfo" style="margin-top: 10px; font-size: 0.9rem; color: #718096;"></div>
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-warning" id="submitBtn" disabled>
+                    <span id="submitText">📦 Warenbestand auffüllen</span>
+                    <span id="loadingText" style="display: none;">
+                        <span class="loading"></span> Wird hochgeladen...
+                    </span>
+                </button>
+            </form>
+            
+            <!-- Upload Progress -->
+            <div id="uploadProgress" class="form-group" style="display: none;">
+                <label class="form-label">📊 Upload-Fortschritt</label>
+                <div style="background: #e2e8f0; border-radius: 10px; overflow: hidden;">
+                    <div id="progressBar" style="height: 8px; background: linear-gradient(135deg, #ed8936, #dd6b20); width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+                <div id="progressText" style="text-align: center; margin-top: 5px; font-size: 0.9rem; color: #718096;">0%</div>
+            </div>
+            
+            <!-- Tips -->
+            <div class="mt-4">
+                <h3 style="color: #4a5568; font-size: 1.1rem; margin-bottom: 15px;">
+                    💡 Tipps für bessere Fotos:
+                </h3>
+                <ul style="color: #718096; font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                    <li>Gute Beleuchtung verwenden</li>
+                    <li>Alle Produkte sichtbar machen</li>
+                    <li>Foto nicht verwackeln</li>
+                    <li>Ausreichend Abstand halten</li>
+                </ul>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="nav-buttons">
+                <a href="/dashboard" class="btn btn-secondary">
+                    ⬅️ Zurück zur Auswahl
+                </a>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4" style="color: #a0aec0; font-size: 0.8rem;">
+                🌿 CBD Warenbestand Management System
+            </div>
+        </div>
+    </div>
+    
+    <!-- Waiting Modal (Popup) -->
+    <div id="waitingModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📦 Auffüllen wird verarbeitet...</h2>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div id="spinner" style="text-align: center; margin: 30px 0;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px; color: #718096;">
+                        Bitte warten, die Rechnung wird hochgeladen und verarbeitet...
+                    </p>
+                </div>
+                <div id="result" style="display: none;"></div>
+            </div>
+            <div class="modal-footer" id="modalFooter">
+                <button onclick="hideWaitingModal()" class="btn btn-secondary">Schließen</button>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 0 0 15px 15px;
+        }
+        
+        /* Spinner Animation */
+        .spinner {
+            margin: 20px auto;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #ed8936;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    
+    <!-- JavaScript -->
+    <script>
+        // Modal Functions
+        function showWaitingModal() {
+            document.getElementById('waitingModal').style.display = 'flex';
+            document.getElementById('spinner').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+        }
+        
+        function hideWaitingModal() {
+            document.getElementById('waitingModal').style.display = 'none';
+        }
+        
+        // File input handling
+        document.getElementById('photo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const fileLabel = document.getElementById('fileLabel');
+            const fileText = document.getElementById('fileText');
+            const filePreview = document.getElementById('filePreview');
+            const previewImage = document.getElementById('previewImage');
+            const fileInfo = document.getElementById('fileInfo');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (file) {
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Bitte wählen Sie eine Bilddatei aus.');
+                    this.value = '';
+                    return;
+                }
+                
+                // Validate file size (10MB max)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Die Datei ist zu groß. Maximum: 10MB');
+                    this.value = '';
+                    return;
+                }
+                
+                // Update label
+                fileLabel.style.borderColor = '#48bb78';
+                fileLabel.style.background = 'rgba(72, 187, 120, 0.05)';
+                fileText.innerHTML = `
+                    <strong>✅ Datei ausgewählt</strong><br>
+                    <small>${file.name}</small>
+                `;
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    filePreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                
+                // Show file info
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                fileInfo.innerHTML = `
+                    📄 ${file.name}<br>
+                    📏 ${fileSize} MB<br>
+                    🎭 ${file.type}
+                `;
+                
+                // Enable submit button
+                submitBtn.disabled = false;
+            } else {
+                // Reset everything
+                fileLabel.style.borderColor = '#cbd5e0';
+                fileLabel.style.background = 'rgba(255, 255, 255, 0.5)';
+                fileText.innerHTML = `
+                    <strong>Foto auswählen oder aufnehmen</strong><br>
+                    <small>Tippen Sie hier, um ein Foto zu machen oder aus der Galerie zu wählen</small>
+                `;
+                filePreview.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        });
+        
+        // Form submission handling
+        document.getElementById('restockForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const file = document.getElementById('photo').files[0];
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (!file) {
+                alert('Bitte wählen Sie ein Foto aus.');
+                return false;
+            }
+            
+            // Zeige Modal
+            showWaitingModal();
+            
+            // Show loading state auf dem Button auch
+            submitBtn.disabled = true;
+            submitText.style.display = 'none';
+            loadingText.style.display = 'inline';
+            
+            // FormData für AJAX erstellen
+            const formData = new FormData();
+            formData.append('photo', file);
+            
+            console.log('Uploading file:', file.name, file.size, 'bytes');
+            
+            fetch('/restock', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    // Erfolg anzeigen mit n8n Response
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('result').style.display = 'block';
+                    
+                    let resultHtml = `<div style="text-align: center; color: #28a745; font-size: 18px; margin-bottom: 20px;">
+                        <strong>✅ ${data.message}</strong>
+                    </div>`;
+                    
+                    resultHtml += '<div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+                    resultHtml += '<h4 style="margin: 0 0 10px 0; color: #2d5a2d;">📦 Upload-Details:</h4>';
+                    resultHtml += `<p style="margin: 5px 0;"><strong>📄 Datei:</strong> ${data.uploadDetails.filename}</p>`;
+                    resultHtml += `<p style="margin: 5px 0;"><strong>📏 Größe:</strong> ${(data.uploadDetails.filesize / 1024 / 1024).toFixed(2)} MB</p>`;
+                    resultHtml += `<p style="margin: 5px 0;"><strong>🎭 Typ:</strong> ${data.uploadDetails.mimetype}</p>`;
+                    resultHtml += '</div>';
+                    
+                    if (data.n8nResponse && Object.keys(data.n8nResponse).length > 0) {
+                        resultHtml += '<div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">';
+                        resultHtml += '<h4 style="margin: 0 0 10px 0; color: #1565c0;">🤖 n8n Antwort:</h4>';
+                        
+                        if (typeof data.n8nResponse === 'object') {
+                            for (const [key, value] of Object.entries(data.n8nResponse)) {
+                                resultHtml += `<p style="margin: 5px 0;"><strong>${key}:</strong> ${value}</p>`;
+                            }
+                        } else {
+                            resultHtml += `<p style="margin: 5px 0;">${data.n8nResponse}</p>`;
+                        }
+                        resultHtml += '</div>';
+                    }
+                    
+                    document.getElementById('result').innerHTML = resultHtml;
+                    
+                    // Reset form nach erfolgreichem Upload
+                    document.getElementById('restockForm').reset();
+                    document.getElementById('photo').dispatchEvent(new Event('change'));
+                } else {
+                    hideWaitingModal();
+                    alert(data.error || 'Es gab einen Fehler beim Hochladen der Datei.');
+                }
+                
+                // Reset button state
+                submitBtn.disabled = false;
+                submitText.style.display = 'inline';
+                loadingText.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Fehler:', error);
+                hideWaitingModal();
+                alert('Es gab einen Fehler beim Hochladen der Datei.');
+                
+                // Reset button state
+                submitBtn.disabled = false;
+                submitText.style.display = 'inline';
+                loadingText.style.display = 'none';
+            });
+            
+            return false;
+        });
+        
+        // Drag and drop support
+        const fileLabel = document.getElementById('fileLabel');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileLabel.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight(e) {
+            fileLabel.style.borderColor = '#667eea';
+            fileLabel.style.background = 'rgba(102, 126, 234, 0.05)';
+        }
+        
+        function unhighlight(e) {
+            fileLabel.style.borderColor = '#cbd5e0';
+            fileLabel.style.background = 'rgba(255, 255, 255, 0.5)';
+        }
+        
+        fileLabel.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                document.getElementById('photo').files = files;
+                document.getElementById('photo').dispatchEvent(new Event('change'));
+            }
+        }
+    </script>
+</body>
+</html> 

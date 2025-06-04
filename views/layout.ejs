@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CBD Warenbestand Management System">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CBD Warenbestand">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">🌿</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <% if (typeof subtitle !== 'undefined') { %>
+                    <p><%= subtitle %></p>
+                <% } %>
+            </div>
+            
+            <!-- Main Content -->
+            <main>
+                <%- body %>
+            </main>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="/js/app.js"></script>
+</body>
+</html> 

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CBD Warenbestand Login">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CBD Login">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">🔐</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <p>Bitte scannen Sie den QR-Code oder geben Sie den Token ein</p>
+            </div>
+            
+            <!-- Error Message -->
+            <% if (error) { %>
+                <div class="alert alert-error">
+                    <strong>❌ Fehler:</strong> <%= error %>
+                </div>
+            <% } %>
+            
+            <!-- Login Info -->
+            <div class="alert alert-info">
+                <strong>ℹ️ Hinweis:</strong> 
+                Verwenden Sie den bereitgestellten QR-Code oder die Login-URL mit dem korrekten Token.
+            </div>
+            
+            <!-- Manual Token Input (for testing) -->
+            <form action="/login" method="GET" id="tokenForm">
+                <div class="form-group">
+                    <label for="token" class="form-label">Token (optional für Tests)</label>
+                    <input 
+                        type="text" 
+                        id="token" 
+                        name="token" 
+                        class="form-control" 
+                        placeholder="Token eingeben..."
+                        autocomplete="off"
+                    >
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    🔑 Mit Token anmelden
+                </button>
+            </form>
+            
+            <!-- Instructions -->
+            <div class="mt-4">
+                <h3 style="color: #4a5568; font-size: 1.1rem; margin-bottom: 15px;">
+                    📱 So funktioniert's:
+                </h3>
+                <ol style="color: #718096; font-size: 0.9rem; line-height: 1.8; padding-left: 20px;">
+                    <li>QR-Code mit Smartphone scannen</li>
+                    <li>Automatische Weiterleitung zur App</li>
+                    <li>Auswahl zwischen "Kaufen" und "Auffüllen"</li>
+                    <li>Formulare ausfüllen und absenden</li>
+                </ol>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4" style="color: #a0aec0; font-size: 0.8rem;">
+                🌿 CBD Warenbestand Management System
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Auto-focus auf Token-Feld
+        document.getElementById('token').focus();
+        
+        // Form-Validierung
+        document.getElementById('tokenForm').addEventListener('submit', function(e) {
+            const token = document.getElementById('token').value.trim();
+            if (!token) {
+                e.preventDefault();
+                alert('Bitte geben Sie einen Token ein.');
+                return false;
+            }
+        });
+        
+        // URL-Parameter prüfen
+        const urlParams = new URLSearchParams(window.location.search);
+        const tokenFromUrl = urlParams.get('token');
+        if (tokenFromUrl) {
+            document.getElementById('token').value = tokenFromUrl;
+        }
+    </script>
+</body>
+</html> 

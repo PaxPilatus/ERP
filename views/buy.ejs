@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CBD Produkt Kaufen">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CBD Kaufen">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">🛒</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <p>Füllen Sie das Formular aus, um ein Produkt zu bestellen</p>
+            </div>
+            
+            <!-- Purchase Form -->
+            <form action="/buy" method="POST" id="buyForm" target="hidden_iframe">
+                <!-- Name Selection -->
+                <div class="form-group">
+                    <label for="name" class="form-label">👤 Name</label>
+                    <select id="name" name="name" class="form-control" required>
+                        <option value="">-- Name auswählen --</option>
+                        <% nameOptions.forEach(function(nameOption) { %>
+                            <option value="<%= nameOption %>"><%= nameOption %></option>
+                        <% }); %>
+                        <option value="custom">✏️ Anderen Namen eingeben...</option>
+                    </select>
+                </div>
+                
+                <!-- Custom Name Input (hidden by default) -->
+                <div class="form-group" id="customNameGroup" style="display: none;">
+                    <label for="customName" class="form-label">✏️ Eigener Name</label>
+                    <input 
+                        type="text" 
+                        id="customName" 
+                        name="customName" 
+                        class="form-control" 
+                        placeholder="Ihren Namen eingeben..."
+                        maxlength="50"
+                    >
+                </div>
+                
+                <!-- Product Selection -->
+                <div class="form-group">
+                    <label for="product" class="form-label">📦 Produkt</label>
+                    <select id="product" name="product" class="form-control" required>
+                        <option value="">-- Produkt auswählen --</option>
+                        <% productOptions.forEach(function(productOption) { %>
+                            <option value="<%= productOption %>"><%= productOption %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                
+                <!-- Quantity Input -->
+                <div class="form-group">
+                    <label for="quantity" class="form-label">🔢 Stückzahl</label>
+                    <input 
+                        type="number" 
+                        id="quantity" 
+                        name="quantity" 
+                        class="form-control" 
+                        placeholder="Anzahl eingeben..."
+                        min="1" 
+                        max="100" 
+                        required
+                    >
+                    <small style="color: #718096; font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Minimum: 1, Maximum: 100
+                    </small>
+                </div>
+                
+                <!-- Notes Input (optional) -->
+                <div class="form-group">
+                    <label for="notes" class="form-label">📝 Notiz (optional)</label>
+                    <textarea 
+                        id="notes" 
+                        name="notes" 
+                        class="form-control" 
+                        placeholder="Zusätzliche Informationen oder Wünsche..."
+                        rows="3"
+                        maxlength="500"
+                        style="resize: vertical; min-height: 80px;"
+                    ></textarea>
+                    <small style="color: #718096; font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Optional - z.B. Lieferadresse, besondere Wünsche, etc.
+                    </small>
+                </div>
+                
+                <!-- Order Summary (appears dynamically) -->
+                <div id="orderSummary" class="alert alert-info" style="display: none; margin-bottom: 20px;">
+                    <strong>📋 Bestellübersicht:</strong><br>
+                    <div id="summaryContent"></div>
+                </div>
+                
+                <!-- Submit Button (moved to bottom) -->
+                <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                    <span id="submitText">🛒 Kauf bestätigen</span>
+                    <span id="loadingText" style="display: none;">
+                        <span class="loading"></span> Wird verarbeitet...
+                    </span>
+                </button>
+            </form>
+            
+            <!-- Navigation -->
+            <div class="nav-buttons">
+                <a href="/dashboard" class="btn btn-secondary">
+                    ⬅️ Zurück zur Auswahl
+                </a>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4" style="color: #a0aec0; font-size: 0.8rem;">
+                🌿 CBD Warenbestand Management System
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Custom name handling
+        document.getElementById('name').addEventListener('change', function() {
+            const customNameGroup = document.getElementById('customNameGroup');
+            const customNameInput = document.getElementById('customName');
+            
+            if (this.value === 'custom') {
+                customNameGroup.style.display = 'block';
+                customNameInput.required = true;
+                customNameInput.focus();
+            } else {
+                customNameGroup.style.display = 'none';
+                customNameInput.required = false;
+                customNameInput.value = '';
+            }
+            updateOrderSummary();
+        });
+        
+        // Order summary update
+        function updateOrderSummary() {
+            const nameSelect = document.getElementById('name');
+            const customName = document.getElementById('customName');
+            const product = document.getElementById('product');
+            const quantity = document.getElementById('quantity');
+            const notes = document.getElementById('notes');
+            const summaryDiv = document.getElementById('orderSummary');
+            const summaryContent = document.getElementById('summaryContent');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            const selectedName = nameSelect.value === 'custom' ? customName.value : nameSelect.value;
+            
+            // Show summary if any field has content
+            const hasAnyContent = selectedName || product.value || quantity.value || notes.value;
+            
+            if (hasAnyContent) {
+                let summaryHtml = '';
+                
+                if (selectedName) {
+                    summaryHtml += `<strong>👤 Name:</strong> ${selectedName}<br>`;
+                }
+                if (product.value) {
+                    summaryHtml += `<strong>📦 Produkt:</strong> ${product.value}<br>`;
+                }
+                if (quantity.value) {
+                    summaryHtml += `<strong>🔢 Stückzahl:</strong> ${quantity.value}<br>`;
+                }
+                if (notes.value.trim()) {
+                    summaryHtml += `<strong>📝 Notiz:</strong> ${notes.value.trim()}<br>`;
+                }
+                
+                // Add missing fields hint (only for required fields)
+                const missingFields = [];
+                if (!selectedName) missingFields.push('Name');
+                if (!product.value) missingFields.push('Produkt');
+                if (!quantity.value) missingFields.push('Stückzahl');
+                
+                if (missingFields.length > 0) {
+                    summaryHtml += `<small style="color: #ed8936;"><strong>Noch benötigt:</strong> ${missingFields.join(', ')}</small>`;
+                }
+                
+                summaryContent.innerHTML = summaryHtml;
+                summaryDiv.style.display = 'block';
+                
+                // Enable submit button only if all required fields are filled
+                const allRequiredFieldsFilled = selectedName && product.value && quantity.value;
+                submitBtn.disabled = !allRequiredFieldsFilled;
+                
+                if (allRequiredFieldsFilled) {
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                } else {
+                    submitBtn.style.opacity = '0.6';
+                    submitBtn.style.cursor = 'not-allowed';
+                }
+            } else {
+                summaryDiv.style.display = 'none';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.style.cursor = 'not-allowed';
+            }
+        }
+        
+        // Add event listeners for real-time summary updates
+        ['name', 'product', 'quantity', 'customName', 'notes'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', updateOrderSummary);
+                element.addEventListener('change', updateOrderSummary);
+            }
+        });
+        
+        // Form submission handling
+        document.getElementById('buyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            
+            // Validierung vor dem Absenden
+            const nameSelect = document.getElementById('name');
+            const customName = document.getElementById('customName');
+            const product = document.getElementById('product');
+            const quantity = document.getElementById('quantity');
+            
+            const selectedName = nameSelect.value === 'custom' ? customName.value : nameSelect.value;
+            
+            if (!selectedName || !product.value || !quantity.value) {
+                alert('Bitte füllen Sie alle Felder aus.');
+                return;
+            }
+            
+            // Modal öffnen
+            showWaitingModal();
+            
+            // JSON-Daten für Kauf vorbereiten
+            const purchaseData = {
+                name: selectedName,
+                product: product.value,
+                quantity: quantity.value,
+                notes: document.getElementById('notes').value || null
+            };
+            
+            console.log('Sending purchase data:', purchaseData);
+            
+            fetch('/buy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(purchaseData)
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    // Erfolg anzeigen mit n8n Response
+                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('result').style.display = 'block';
+                    
+                    let resultHtml = `<div style="text-align: center; color: #28a745; font-size: 18px; margin-bottom: 20px;">
+                        <strong>✅ ${data.message}</strong>
+                    </div>`;
+                    
+                    resultHtml += '<div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+                    resultHtml += '<h4 style="margin: 0 0 10px 0; color: #155724;">📦 Bestelldetails:</h4>';
+                    resultHtml += `<p><strong>Name:</strong> ${data.orderDetails.name}</p>`;
+                    resultHtml += `<p><strong>Produkt:</strong> ${data.orderDetails.product}</p>`;
+                    resultHtml += `<p><strong>Stückzahl:</strong> ${data.orderDetails.quantity}</p>`;
+                    if (data.orderDetails.notes) {
+                        resultHtml += `<p><strong>Notiz:</strong> ${data.orderDetails.notes}</p>`;
+                    }
+                    resultHtml += '</div>';
+                    
+                    if (data.n8nResponse && Object.keys(data.n8nResponse).length > 0) {
+                        resultHtml += '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">';
+                        resultHtml += '<h4 style="margin: 0 0 10px 0; color: #495057;">🔄 System-Response:</h4>';
+                        if (data.n8nResponse.Lagerbestand !== undefined) {
+                            resultHtml += `<p><strong>Neuer Lagerbestand:</strong> ${data.n8nResponse.Lagerbestand}</p>`;
+                        }
+                        if (data.n8nResponse.Preis !== undefined) {
+                            resultHtml += `<p><strong>Preis:</strong> ${data.n8nResponse.Preis}€</p>`;
+                        }
+                        if (data.n8nResponse.Datum) {
+                            resultHtml += `<p><strong>Datum:</strong> ${new Date(data.n8nResponse.Datum).toLocaleString('de-DE')}</p>`;
+                        }
+                        resultHtml += '</div>';
+                    }
+                    
+                    resultHtml += '<div style="margin-top: 20px; text-align: center;">';
+                    resultHtml += '<button onclick="closeModal()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">OK</button>';
+                    resultHtml += '</div>';
+                    
+                    document.getElementById('result').innerHTML = resultHtml;
+                } else {
+                    hideWaitingModal();
+                    alert(data.error || 'Es gab einen Fehler beim Verarbeiten des Kaufs.');
+                }
+            })
+            .catch(error => {
+                console.error('Fehler Details:', error);
+                hideWaitingModal();
+                alert('Es gab einen Fehler beim Verarbeiten des Kaufs: ' + error.message);
+            });
+        });
+        
+        function showWaitingModal() {
+            const modal = document.getElementById('waitingModal');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function hideWaitingModal() {
+            const modal = document.getElementById('waitingModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('spinner').style.display = 'block';
+        }
+        
+        // Modal schließen
+        function closeModal() {
+            hideWaitingModal();
+        }
+        
+        // Modal schließen bei Klick außerhalb
+        window.onclick = function(event) {
+            const modal = document.getElementById('waitingModal');
+            if (event.target === modal) {
+                hideWaitingModal();
+            }
+        }
+    </script>
+    
+    <!-- Waiting Modal -->
+    <div id="waitingModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Bitte warten, Ihre Bestellung wird verarbeitet...</h2>
+            <div id="spinner" class="spinner"></div>
+            <div id="result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .spinner {
+            margin: 40px auto;
+            border: 8px solid #eee;
+            border-top: 8px solid #6c63ff;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            margin-top: 20px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: left;
+        }
+    </style>
+    
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+</body>
+</html> 

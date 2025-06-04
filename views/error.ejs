@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fehler aufgetreten">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Fehler">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">❌</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <p>Es ist ein Problem aufgetreten</p>
+            </div>
+            
+            <!-- Error Message -->
+            <div class="alert alert-error">
+                <strong>⚠️ Fehler:</strong><br>
+                <%= message %>
+            </div>
+            
+            <!-- Error Details -->
+            <div class="mt-4">
+                <h3 style="color: #4a5568; font-size: 1.1rem; margin-bottom: 15px;">
+                    🔧 Was können Sie tun:
+                </h3>
+                <div style="color: #718096; font-size: 0.9rem; line-height: 1.8;">
+                    <% if (title.includes('404')) { %>
+                        <div style="margin-bottom: 10px;">
+                            <strong>🔍 Überprüfen:</strong> Stellen Sie sicher, dass die URL korrekt ist
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>🏠 Startseite:</strong> Gehen Sie zur Hauptseite zurück
+                        </div>
+                        <div>
+                            <strong>🔗 Navigation:</strong> Verwenden Sie die Navigationsbuttons
+                        </div>
+                    <% } else if (title.includes('Login')) { %>
+                        <div style="margin-bottom: 10px;">
+                            <strong>🔑 Token:</strong> Überprüfen Sie, ob der Token korrekt ist
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>📱 QR-Code:</strong> Scannen Sie den QR-Code erneut
+                        </div>
+                        <div>
+                            <strong>🔄 Wiederholen:</strong> Versuchen Sie es noch einmal
+                        </div>
+                    <% } else { %>
+                        <div style="margin-bottom: 10px;">
+                            <strong>🔄 Wiederholen:</strong> Versuchen Sie die Aktion erneut
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>📱 Verbindung:</strong> Überprüfen Sie Ihre Internetverbindung
+                        </div>
+                        <div>
+                            <strong>⏰ Warten:</strong> Warten Sie einen Moment und versuchen Sie es erneut
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            
+            <!-- Error Animation -->
+            <div class="text-center mt-4">
+                <div style="font-size: 3rem; animation: shake 1s infinite;">
+                    😔
+                </div>
+            </div>
+            
+            <!-- Navigation Options -->
+            <div class="nav-buttons">
+                <% if (typeof backUrl !== 'undefined' && backUrl) { %>
+                    <a href="<%= backUrl %>" class="btn btn-primary">
+                        ⬅️ Zurück
+                    </a>
+                <% } %>
+                <a href="/dashboard" class="btn btn-secondary">
+                    🏠 Zur Startseite
+                </a>
+            </div>
+            
+            <!-- Additional Help -->
+            <div class="mt-4">
+                <div class="alert alert-info">
+                    <strong>💡 Tipp:</strong> 
+                    Falls das Problem weiterhin besteht, wenden Sie sich an den Administrator 
+                    oder versuchen Sie es später erneut.
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4" style="color: #a0aec0; font-size: 0.8rem;">
+                🌿 CBD Warenbestand Management System
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Error animation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add shake animation to error elements
+            const errorElements = document.querySelectorAll('.alert-error, .logo');
+            errorElements.forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateX(-20px)';
+                
+                setTimeout(() => {
+                    element.style.transition = 'all 0.5s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateX(0)';
+                }, index * 200);
+            });
+        });
+        
+        // Auto-retry for network errors (optional)
+        <% if (!title.includes('404') && !title.includes('Login')) { %>
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        function autoRetry() {
+            if (retryCount < maxRetries) {
+                retryCount++;
+                console.log(`Auto-Retry Versuch ${retryCount}/${maxRetries}`);
+                
+                // Show retry message
+                const retryMessage = document.createElement('div');
+                retryMessage.className = 'alert alert-info mt-3';
+                retryMessage.innerHTML = `
+                    <strong>🔄 Automatischer Wiederholungsversuch ${retryCount}/${maxRetries}...</strong>
+                `;
+                
+                const card = document.querySelector('.card');
+                card.appendChild(retryMessage);
+                
+                // Remove retry message after 3 seconds
+                setTimeout(() => {
+                    retryMessage.remove();
+                }, 3000);
+                
+                // Retry after 5 seconds
+                setTimeout(autoRetry, 5000);
+            }
+        }
+        
+        // Start auto-retry after 10 seconds
+        setTimeout(autoRetry, 10000);
+        <% } %>
+        
+        // Add click feedback to buttons
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+    </script>
+    
+    <!-- CSS Animations -->
+    <style>
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            10%, 30%, 50%, 70%, 90% {
+                transform: translateX(-5px);
+            }
+            20%, 40%, 60%, 80% {
+                transform: translateX(5px);
+            }
+        }
+    </style>
+</body>
+</html> 

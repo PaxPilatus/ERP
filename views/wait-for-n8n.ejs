@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Warte auf Bestätigung...</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f0f0; text-align: center; padding-top: 80px; }
+    .spinner { margin: 40px auto; border: 8px solid #eee; border-top: 8px solid #6c63ff; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .result { margin-top: 40px; background: #fff; padding: 30px; border-radius: 10px; display: inline-block; }
+  </style>
+</head>
+<body>
+  <h2>Bitte warten, Ihre Bestellung wird verarbeitet...</h2>
+  <div class="spinner"></div>
+  <div id="result" class="result" style="display:none;"></div>
+  <script>
+    const orderId = '<%= orderId %>';
+    async function poll() {
+      const res = await fetch(`/order-status/${orderId}`);
+      const data = await res.json();
+      if (data.status === 'done') {
+        document.querySelector('.spinner').style.display = 'none';
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('result').innerHTML = '<b>Antwort von n8n:</b><br><pre>' + JSON.stringify(data.data, null, 2) + '</pre>';
+      } else {
+        setTimeout(poll, 1500);
+      }
+    }
+    poll();
+  </script>
+</body>
+</html> 

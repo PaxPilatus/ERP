@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CBD Warenbestand Dashboard">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="CBD Dashboard">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">📊</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <p>Wählen Sie eine Aktion aus</p>
+            </div>
+            
+            <!-- Welcome Message -->
+            <div class="alert alert-success">
+                <strong>✅ Erfolgreich angemeldet!</strong><br>
+                Willkommen im CBD Warenbestand System.
+            </div>
+            
+            <!-- Main Actions -->
+            <div class="dashboard-grid">
+                <!-- Kaufen Button -->
+                <a href="/buy" class="btn btn-success" style="text-decoration: none; margin-bottom: 0;">
+                    <div class="dashboard-icon">🛒</div>
+                    <strong>Kaufen</strong><br>
+                    <small style="opacity: 0.8;">Produkt bestellen</small>
+                </a>
+                
+                <!-- Auffüllen Button -->
+                <a href="/restock" class="btn btn-warning" style="text-decoration: none; margin-bottom: 0;">
+                    <div class="dashboard-icon">📦</div>
+                    <strong>Auffüllen</strong><br>
+                    <small style="opacity: 0.8;">Warenbestand ergänzen</small>
+                </a>
+            </div>
+            
+            <!-- Additional Info -->
+            <div class="mt-4">
+                <h3 style="color: #4a5568; font-size: 1.1rem; margin-bottom: 15px;">
+                    ℹ️ Funktionen:
+                </h3>
+                <div style="color: #718096; font-size: 0.9rem; line-height: 1.8;">
+                    <div style="margin-bottom: 10px;">
+                        <strong>🛒 Kaufen:</strong> Wählen Sie Name, Produkt und Menge aus
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                        <strong>📦 Auffüllen:</strong> Laden Sie ein Foto des Warenbestands hoch
+                    </div>
+                    <div>
+                        <strong>🔄 Synchronisation:</strong> Alle Daten werden automatisch an n8n gesendet
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <div class="nav-buttons">
+                <a href="/logout" class="btn btn-secondary">
+                    🚪 Abmelden
+                </a>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4" style="color: #a0aec0; font-size: 0.8rem;">
+                🌿 CBD Warenbestand Management System
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Smooth animations for dashboard cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.btn');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+        
+        // Add click feedback
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+    </script>
+</body>
+</html> 

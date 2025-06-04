@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aktion erfolgreich">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Erfolgreich">
+    
+    <title><%= title %> | CBD Warenbestand</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo/Branding -->
+            <div class="logo">✅</div>
+            
+            <!-- Header -->
+            <div class="header">
+                <h1><%= title %></h1>
+                <p>Ihre Aktion wurde erfolgreich verarbeitet</p>
+            </div>
+            
+            <!-- Success Message -->
+            <div class="alert alert-success">
+                <strong>🎉 Erfolgreich!</strong><br>
+                <%= message %>
+            </div>
+            
+            <!-- Action Details -->
+            <div class="mt-4">
+                <h3 style="color: #4a5568; font-size: 1.1rem; margin-bottom: 15px;">
+                    📋 Was passiert als nächstes:
+                </h3>
+                <div style="color: #718096; font-size: 0.9rem; line-height: 1.8;">
+                    <% if (action === 'Kauf') { %>
+                        <div style="margin-bottom: 10px;">
+                            <strong>📤 Datenübertragung:</strong> Ihre Bestellung wurde an das n8n-System gesendet
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>🔄 Verarbeitung:</strong> Die Bestellung wird automatisch verarbeitet
+                        </div>
+                        <div>
+                            <strong>📧 Bestätigung:</strong> Sie erhalten eine Bestätigung über das System
+                        </div>
+                    <% } else if (action === 'Auffüllen') { %>
+                        <div style="margin-bottom: 10px;">
+                            <strong>📤 Upload:</strong> Ihr Foto wurde erfolgreich hochgeladen
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <strong>🔍 Analyse:</strong> Das System analysiert den Warenbestand
+                        </div>
+                        <div>
+                            <strong>📊 Update:</strong> Die Bestandsdaten werden automatisch aktualisiert
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+            
+            <!-- Celebration Animation -->
+            <div class="text-center mt-4">
+                <div style="font-size: 3rem; animation: bounce 2s infinite;">
+                    🎉
+                </div>
+            </div>
+            
+            <!-- Navigation Options -->
+            <div class="nav-buttons">
+                <a href="<%= backUrl %>" class="btn btn-primary">
+                    🔄 Weitere <%= action === 'Kauf' ? 'Bestellung' : 'Auffüllung' %>
+                </a>
+                <a href="/dashboard" class="btn btn-secondary">
+                    🏠 Zur Startseite
+                </a>
+            </div>
+            
+            <!-- Footer -->
+            <div class="text-center mt-4" style="color: #a0aec0; font-size: 0.8rem;">
+                🌿 CBD Warenbestand Management System
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        // Celebration animation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add bounce animation to success elements
+            const successElements = document.querySelectorAll('.alert-success, .logo');
+            successElements.forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    element.style.transition = 'all 0.5s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'scale(1)';
+                }, index * 200);
+            });
+            
+            // Confetti effect (simple)
+            createConfetti();
+        });
+        
+        function createConfetti() {
+            const colors = ['#667eea', '#764ba2', '#48bb78', '#ed8936'];
+            const confettiCount = 50;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.style.position = 'fixed';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = '10px';
+                    confetti.style.height = '10px';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = '50%';
+                    confetti.style.pointerEvents = 'none';
+                    confetti.style.zIndex = '9999';
+                    confetti.style.animation = 'fall 3s linear forwards';
+                    
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 3000);
+                }, i * 100);
+            }
+        }
+        
+        // Auto-redirect after 10 seconds (optional)
+        let countdown = 10;
+        const autoRedirect = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                clearInterval(autoRedirect);
+                window.location.href = '/dashboard';
+            }
+        }, 1000);
+        
+        // Clear auto-redirect if user interacts
+        document.addEventListener('click', () => {
+            clearInterval(autoRedirect);
+        });
+    </script>
+    
+    <!-- CSS Animations -->
+    <style>
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-30px);
+            }
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+        
+        @keyframes fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</body>
+</html> 
