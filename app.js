@@ -11,10 +11,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Konfiguration
-const SECRET_TOKEN = 'meinGeheimerToken123';
+const SECRET_TOKEN = '420';
 const SESSION_SECRET = 'cbd-warenbestand-secret-key-2024';
 // n8n.cloud Test-URL für alle Webhook-POSTs
-const N8N_TEST_URL = 'https://mundoschnauz420.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
+const N8N_TEST_URL = 'https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
 
 // Im Speicher Order-Status speichern
 const orderStatusMap = new Map();
@@ -35,7 +35,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: false, // Auf true setzen für HTTPS in Produktion
+    secure: process.env.NODE_ENV === 'production', // Automatisch HTTPS für Production
     maxAge: 24 * 60 * 60 * 1000 // 24 Stunden
   }
 }));
