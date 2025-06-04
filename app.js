@@ -194,12 +194,19 @@ app.get('/buy', requireAuth, (req, res) => {
   // Vordefinierte Optionen für das Formular
   const nameOptions = ['Manuel', 'Sarah', 'Thomas', 'Lisa', 'Michael'];
   const productOptions = [
-    'CBD Öl 10%',
-    'CBD Öl 20%',
-    'CBD Kapseln',
-    'CBD Blüten',
-    'CBD Creme',
-    'CBD Tee'
+    'Candy Flip',
+    'Sweed Lemon - kl. Blüten',
+    'Sweed Lemon - gr. Blüten',
+    'Super Silver Haze - kl. Blüten',
+    'Super Silver Haze - gr. Blüten',
+    'Sweed Cabak',
+    'Harlequin Indoor',
+    'Cannatonic Indoor',
+    'Cheesy Passion',
+    'Fruit Punch',
+    'Qualicann Malana Cream',
+    'Hashtronaut',
+    'Moon Light 5g'
   ];
   
   res.render('buy', { 
