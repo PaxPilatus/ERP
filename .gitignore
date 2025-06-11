@@ -31,8 +31,9 @@ pids
 
 # Google Sheets Credentials
 cred/
-*.json
+cred/**
 sheets-key.json
+**/sheets-key.json
 
 # Logs
 logs
