@@ -29,6 +29,11 @@ pids
 .env.test.local
 .env.production.local
 
+# Google Sheets Credentials
+cred/
+*.json
+sheets-key.json
+
 # Logs
 logs
 *.log

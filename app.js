@@ -6,6 +6,11 @@ const path = require('path');
 const multer = require('multer');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
+const cors = require('cors');
+const { config } = require('dotenv');
+
+// Umgebungsvariablen laden
+config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,12 +27,28 @@ const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://paxpilatus.app.n8n.clo
 // Im Speicher Order-Status speichern
 const orderStatusMap = new Map();
 
+// Google Sheets Integration
+let sheetsModule;
+try {
+  sheetsModule = require('./lib/sheets.js');
+  console.log('📊 Google Sheets Modul erfolgreich geladen');
+} catch (error) {
+  console.warn('⚠️  Google Sheets Modul nicht verfügbar:', error.message);
+  console.log('💡 Für Google Sheets Integration: npm install und .env konfigurieren');
+}
+
+// Cache für Produktdaten
+let productCache = [];
+let lastProductFetch = 0;
+const CACHE_TTL = parseInt(process.env.CACHE_MS, 10) || 300000; // 5 Minuten Standard
+
 console.log('🚀 CBD Warenbestand App wird gestartet...');
 console.log(`📱 Server läuft auf Port: ${PORT}`);
 console.log(`🔐 Login-Token: ${SECRET_TOKEN}`);
 console.log(`🌐 n8n.cloud Test-URL: ${N8N_TEST_URL}`);
 
 // Middleware Setup
+app.use(cors()); // CORS für API-Aufrufe
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -128,6 +149,104 @@ app.get('/dashboard', requireAuth, (req, res) => {
   res.render('dashboard', { 
     title: 'CBD Warenbestand - Auswahl'
   });
+});
+
+// Google Sheets Produkte Helper-Funktion
+async function getProductsFromSheets() {
+  if (!sheetsModule) {
+    throw new Error('Google Sheets Modul nicht verfügbar. Prüfen Sie die Installation und Konfiguration.');
+  }
+  
+  const now = Date.now();
+  if (now - lastProductFetch > CACHE_TTL) {
+    try {
+      console.log('🔄 Cache abgelaufen, lade neue Produkte aus Google Sheets...');
+      productCache = await sheetsModule.fetchProducts();
+      lastProductFetch = now;
+      console.log(`✅ Produkte-Cache aktualisiert: ${productCache.length} Produkte`);
+    } catch (error) {
+      console.error('❌ Fehler beim Aktualisieren des Produkte-Cache:', error.message);
+      // Bei Fehlern den alten Cache verwenden (falls vorhanden)
+      if (productCache.length === 0) {
+        throw error; // Nur weiterwerfen wenn gar kein Cache vorhanden
+      }
+      console.log('⚠️  Verwende alten Cache mit', productCache.length, 'Produkten');
+    }
+  } else {
+    console.log('✅ Verwende Cache-Daten (noch gültig für', Math.round((CACHE_TTL - (now - lastProductFetch)) / 1000), 'Sekunden)');
+  }
+  
+  return productCache;
+}
+
+// API Route für Google Sheets Produktabruf
+app.get('/api/products', requireAuth, async (req, res) => {
+  console.log('📊 API-Anfrage für Produkte aus Google Sheets');
+  
+  try {
+    const products = await getProductsFromSheets();
+    
+    console.log(`✅ ${products.length} Produkte erfolgreich zurückgegeben`);
+    
+    res.json({
+      success: true,
+      products: products,
+      count: products.length,
+      cached: Date.now() - lastProductFetch < 5000 ? false : true, // Innerhalb 5 Sekunden = frisch geladen
+      cacheAge: Math.round((Date.now() - lastProductFetch) / 1000),
+      maxCacheAge: Math.round(CACHE_TTL / 1000)
+    });
+    
+  } catch (error) {
+    console.error('❌ API-Fehler beim Laden der Produkte:', error.message);
+    
+    res.status(500).json({ 
+      success: false,
+      error: 'Fehler beim Laden der Produkte aus Google Sheets',
+      details: error.message,
+      fallback: 'Verwenden Sie die vordefinierten Produkte'
+    });
+  }
+});
+
+// Test-Route für Google Sheets Verbindung (nur für Development)
+app.get('/api/test-sheets', requireAuth, async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Test-Route nur im Development verfügbar' });
+  }
+  
+  console.log('🧪 Test der Google Sheets Verbindung...');
+  
+  if (!sheetsModule) {
+    return res.status(500).json({ 
+      success: false,
+      error: 'Google Sheets Modul nicht verfügbar',
+      help: 'npm install google-auth-library googleapis und .env konfigurieren'
+    });
+  }
+  
+  try {
+    const isConnected = await sheetsModule.testConnection();
+    
+    res.json({
+      success: true,
+      connected: isConnected,
+      config: {
+        hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        hasSheetId: !!process.env.SHEET_ID,
+        hasRange: !!process.env.RANGE,
+        range: process.env.RANGE || 'nicht konfiguriert',
+        cacheMs: process.env.CACHE_MS || 'Standard (300000)'
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      connected: false,
+      error: error.message
+    });
+  }
 });
 
 // API-Endpoint für n8n (ohne Authentifizierung)

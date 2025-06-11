@@ -59,12 +59,30 @@
                 <!-- Product Selection -->
                 <div class="form-group">
                     <label for="product" class="form-label">📦 Produkt</label>
+                    
+                    <!-- Google Sheets Button -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                        <button type="button" id="loadProductsBtn" class="btn btn-secondary" style="flex: 0 0 auto; padding: 8px 16px; font-size: 0.9rem;">
+                            <span id="loadBtnText">📊 Aktuelle Produkte laden</span>
+                            <span id="loadBtnSpinner" style="display: none;">
+                                <span class="loading"></span> Lade...
+                            </span>
+                        </button>
+                        <small id="productLoadHint" style="color: #718096; font-size: 0.8rem; flex: 1;">
+                            Lädt die neuesten Produkte aus Google Sheets
+                        </small>
+                    </div>
+                    
                     <select id="product" name="product" class="form-control" required>
                         <option value="">-- Produkt auswählen --</option>
                         <% productOptions.forEach(function(productOption) { %>
                             <option value="<%= productOption %>"><%= productOption %></option>
                         <% }); %>
                     </select>
+                    
+                    <small id="productHint" style="color: #718096; font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Statische Produktliste. Klicken Sie "Aktuelle Produkte laden" für Google Sheets Daten.
+                    </small>
                 </div>
                 
                 <!-- Quantity Input -->
@@ -220,6 +238,107 @@
             if (element) {
                 element.addEventListener('input', updateOrderSummary);
                 element.addEventListener('change', updateOrderSummary);
+            }
+        });
+        
+        // Google Sheets Produkte laden
+        document.getElementById('loadProductsBtn').addEventListener('click', async function() {
+            const btn = this;
+            const btnText = document.getElementById('loadBtnText');
+            const btnSpinner = document.getElementById('loadBtnSpinner');
+            const productSelect = document.getElementById('product');
+            const productHint = document.getElementById('productHint');
+            const productLoadHint = document.getElementById('productLoadHint');
+            
+            // Button Status ändern
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'inline';
+            productLoadHint.textContent = 'Lade Produkte aus Google Sheets...';
+            productLoadHint.style.color = '#007bff';
+            
+            try {
+                console.log('🔄 Lade Produkte von Google Sheets API...');
+                const response = await fetch('/api/products');
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Google Sheets API Response:', data);
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Unbekannter Fehler');
+                }
+                
+                // Aktuelle Auswahl merken
+                const currentValue = productSelect.value;
+                
+                // Produktliste aktualisieren
+                productSelect.innerHTML = '<option value="">-- Produkt auswählen --</option>';
+                
+                data.products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product;
+                    option.textContent = product;
+                    productSelect.appendChild(option);
+                });
+                
+                // Alte Auswahl wiederherstellen, falls noch vorhanden
+                if (currentValue && data.products.includes(currentValue)) {
+                    productSelect.value = currentValue;
+                }
+                
+                // Erfolg anzeigen
+                const cacheInfo = data.cached ? `(Cache: ${data.cacheAge}s alt)` : '(frisch geladen)';
+                productHint.style.color = '#38a169';
+                productHint.innerHTML = `✅ ${data.products.length} Produkte aus Google Sheets geladen ${cacheInfo}<br><small style="color: #718096;">Letzte Aktualisierung: ${new Date().toLocaleTimeString()}</small>`;
+                
+                productLoadHint.textContent = `✅ ${data.products.length} Produkte geladen`;
+                productLoadHint.style.color = '#38a169';
+                
+                // Button erfolgreich
+                btnText.textContent = '✅ Erfolgreich geladen';
+                btnText.style.color = '#38a169';
+                
+                // Summary aktualisieren falls Produktauswahl aktiv war
+                updateOrderSummary();
+                
+            } catch (error) {
+                console.error('❌ Fehler beim Laden der Produkte:', error);
+                
+                // Fehler anzeigen
+                productHint.style.color = '#e53e3e';
+                productHint.innerHTML = `❌ Fehler beim Laden: ${error.message}<br><small style="color: #718096;">Verwenden Sie die vordefinierten Produkte oder versuchen Sie es erneut.</small>`;
+                
+                productLoadHint.textContent = 'Fehler beim Laden';
+                productLoadHint.style.color = '#e53e3e';
+                
+                // Button Fehler
+                btnText.textContent = '❌ Fehler beim Laden';
+                btnText.style.color = '#e53e3e';
+                
+            } finally {
+                // Button zurücksetzen nach 3 Sekunden
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btnText.style.display = 'inline';
+                    btnSpinner.style.display = 'none';
+                    btnText.textContent = '📊 Aktuelle Produkte laden';
+                    btnText.style.color = '';
+                    
+                    // Hints zurücksetzen nach 10 Sekunden
+                    setTimeout(() => {
+                        if (!productHint.textContent.includes('✅')) {
+                            productHint.style.color = '#718096';
+                            productHint.textContent = 'Statische Produktliste. Klicken Sie "Aktuelle Produkte laden" für Google Sheets Daten.';
+                        }
+                        productLoadHint.textContent = 'Lädt die neuesten Produkte aus Google Sheets';
+                        productLoadHint.style.color = '#718096';
+                    }, 7000);
+                }, 3000);
             }
         });
         
