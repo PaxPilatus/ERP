@@ -69,6 +69,23 @@
                     </div>
                 </div>
                 
+                <!-- Account Assignment -->
+                <div class="form-group">
+                    <label for="account" class="form-label">💰 Kontozuordnung</label>
+                    <select id="account" name="account" class="form-control" required>
+                        <option value="">-- Konto auswählen --</option>
+                        <option value="warenaufwand">📦 Warenaufwand</option>
+                        <option value="IT-Aufwand">💻 IT-Aufwand</option>
+                        <option value="Werbeaufwand">📢 Werbeaufwand</option>
+                        <option value="Verwaltungskosten">🏢 Verwaltungskosten</option>
+                        <option value="Bankspesen">🏦 Bankspesen</option>
+                        <option value="Reise / Verpflegung">✈️ Reise / Verpflegung</option>
+                    </select>
+                    <small style="color: #718096; font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Wählen Sie das entsprechende Konto für die Buchung aus
+                    </small>
+                </div>
+                
                 <!-- Submit Button -->
                 <button type="submit" class="btn btn-warning" id="submitBtn" disabled>
                     <span id="submitText">📦 Warenbestand auffüllen</span>
@@ -218,7 +235,18 @@
         
         // File input handling
         document.getElementById('photo').addEventListener('change', function(e) {
-            const file = e.target.files[0];
+            updateSubmitButton();
+        });
+        
+        // Account selection handling
+        document.getElementById('account').addEventListener('change', function(e) {
+            updateSubmitButton();
+        });
+        
+        // Function to update submit button state
+        function updateSubmitButton() {
+            const file = document.getElementById('photo').files[0];
+            const account = document.getElementById('account').value;
             const fileLabel = document.getElementById('fileLabel');
             const fileText = document.getElementById('fileText');
             const filePreview = document.getElementById('filePreview');
@@ -230,14 +258,14 @@
                 // Validate file type
                 if (!file.type.startsWith('image/')) {
                     alert('Bitte wählen Sie eine Bilddatei aus.');
-                    this.value = '';
+                    document.getElementById('photo').value = '';
                     return;
                 }
                 
                 // Validate file size (10MB max)
                 if (file.size > 10 * 1024 * 1024) {
                     alert('Die Datei ist zu groß. Maximum: 10MB');
-                    this.value = '';
+                    document.getElementById('photo').value = '';
                     return;
                 }
                 
@@ -264,9 +292,6 @@
                     📏 ${fileSize} MB<br>
                     🎭 ${file.type}
                 `;
-                
-                // Enable submit button
-                submitBtn.disabled = false;
             } else {
                 // Reset everything
                 fileLabel.style.borderColor = '#cbd5e0';
@@ -276,21 +301,37 @@
                     <small>Tippen Sie hier, um ein Foto zu machen oder aus der Galerie zu wählen</small>
                 `;
                 filePreview.style.display = 'none';
-                submitBtn.disabled = true;
             }
-        });
+            
+            // Enable submit button only if both file and account are selected
+            submitBtn.disabled = !(file && account);
+            
+            if (submitBtn.disabled) {
+                submitBtn.style.opacity = '0.6';
+                submitBtn.style.cursor = 'not-allowed';
+            } else {
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            }
+        }
         
         // Form submission handling
         document.getElementById('restockForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
             const file = document.getElementById('photo').files[0];
+            const account = document.getElementById('account').value;
             const submitBtn = document.getElementById('submitBtn');
             const submitText = document.getElementById('submitText');
             const loadingText = document.getElementById('loadingText');
             
             if (!file) {
                 alert('Bitte wählen Sie ein Foto aus.');
+                return false;
+            }
+            
+            if (!account) {
+                alert('Bitte wählen Sie ein Konto aus.');
                 return false;
             }
             
@@ -305,8 +346,10 @@
             // FormData für AJAX erstellen
             const formData = new FormData();
             formData.append('photo', file);
+            formData.append('account', account);
             
             console.log('Uploading file:', file.name, file.size, 'bytes');
+            console.log('Account assignment:', account);
             
             fetch('/restock', {
                 method: 'POST',
@@ -335,6 +378,9 @@
                     resultHtml += `<p style="margin: 5px 0;"><strong>📄 Datei:</strong> ${data.uploadDetails.filename}</p>`;
                     resultHtml += `<p style="margin: 5px 0;"><strong>📏 Größe:</strong> ${(data.uploadDetails.filesize / 1024 / 1024).toFixed(2)} MB</p>`;
                     resultHtml += `<p style="margin: 5px 0;"><strong>🎭 Typ:</strong> ${data.uploadDetails.mimetype}</p>`;
+                    if (data.uploadDetails.account) {
+                        resultHtml += `<p style="margin: 5px 0;"><strong>💰 Konto:</strong> ${data.uploadDetails.account}</p>`;
+                    }
                     resultHtml += '</div>';
                     
                     if (data.n8nResponse && Object.keys(data.n8nResponse).length > 0) {
@@ -355,7 +401,7 @@
                     
                     // Reset form nach erfolgreichem Upload
                     document.getElementById('restockForm').reset();
-                    document.getElementById('photo').dispatchEvent(new Event('change'));
+                    updateSubmitButton();
                 } else {
                     hideWaitingModal();
                     alert(data.error || 'Es gab einen Fehler beim Hochladen der Datei.');
@@ -418,7 +464,7 @@
             
             if (files.length > 0) {
                 document.getElementById('photo').files = files;
-                document.getElementById('photo').dispatchEvent(new Event('change'));
+                updateSubmitButton();
             }
         }
     </script>

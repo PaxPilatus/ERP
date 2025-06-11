@@ -470,12 +470,24 @@ app.post('/restock', requireAuth, upload.single('photo'), async (req, res) => {
   console.log('📦 AUFFÜLLEN-AKTION GESTARTET');
   
   const uploadedFile = req.file;
+  const account = req.body.account;
+  
+  console.log('📝 Empfangene req.body:', req.body);
+  console.log('📝 Kontozuordnung:', account);
   
   if (!uploadedFile) {
     console.log('❌ Keine Datei hochgeladen');
     return res.status(400).json({ 
       success: false,
       error: 'Bitte wählen Sie eine Datei zum Hochladen aus.'
+    });
+  }
+  
+  if (!account) {
+    console.log('❌ Keine Kontozuordnung ausgewählt');
+    return res.status(400).json({ 
+      success: false,
+      error: 'Bitte wählen Sie eine Kontozuordnung aus.'
     });
   }
   
@@ -488,6 +500,7 @@ app.post('/restock', requireAuth, upload.single('photo'), async (req, res) => {
   console.log(`   📏 Dateigröße: ${uploadedFile.size} Bytes`);
   console.log(`   🎭 MIME-Type: ${uploadedFile.mimetype}`);
   console.log(`   💾 Buffer-Größe: ${uploadedFile.buffer.length} Bytes`);
+  console.log(`   💰 Konto: ${account}`);
   
   try {
     // FormData für Datei-Upload erstellen
@@ -503,10 +516,12 @@ app.post('/restock', requireAuth, upload.single('photo'), async (req, res) => {
     formData.append('timestamp', new Date().toISOString());
     formData.append('filename', rechnungFilename);
     formData.append('filesize', uploadedFile.size.toString());
+    formData.append('account', account);
     
     console.log('📤 Sende Datei an n8n Webhook:');
     console.log(`   🌐 URL: ${N8N_TEST_URL}`);
     console.log(`   📁 Datei: ${rechnungFilename} (${uploadedFile.size} Bytes)`);
+    console.log(`   💰 Konto: ${account}`);
     
     // POST Request an n8n mit Datei
     const response = await axios.post(
@@ -534,7 +549,8 @@ app.post('/restock', requireAuth, upload.single('photo'), async (req, res) => {
       uploadDetails: {
         filename: rechnungFilename,
         filesize: uploadedFile.size,
-        mimetype: uploadedFile.mimetype
+        mimetype: uploadedFile.mimetype,
+        account: account
       }
     });
     
