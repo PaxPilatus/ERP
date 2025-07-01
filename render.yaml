@@ -13,4 +13,4 @@ services:
       - key: SESSION_SECRET
         value: cbd-warenbestand-secret-key-2024
       - key: N8N_TEST_URL
-        value: https://n8n.cbdladen.ch/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9 
+        value: https://n8n.cbdladen.ch/webhook/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9 

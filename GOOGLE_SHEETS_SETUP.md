@@ -119,7 +119,7 @@ CACHE_MS=300000
 # Bestehende Konfiguration...
 SECRET_TOKEN=420
 SESSION_SECRET=cbd-warenbestand-secret-key-2024
-N8N_TEST_URL=https://n8n.cbdladen.ch/webhook-test/...
+N8N_TEST_URL=https://n8n.cbdladen.ch/webhook/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9
 ```
 
 **Parameter-Erklärung**:

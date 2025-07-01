@@ -27,7 +27,7 @@ PRODUCTS_RANGE=Produkte!A2:A           # Produkte zum Laden
 # Optional: RANGE=Produkte!A2:A         # Fallback für ältere Konfigurationen
 
 # n8n Integration (handhabt alle Updates)
-N8N_TEST_URL=https://n8n.cbdladen.ch/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9
+N8N_TEST_URL=https://n8n.cbdladen.ch/webhook/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9
 ```
 
 ## 📋 Google Sheets Dokument Struktur

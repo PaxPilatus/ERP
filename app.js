@@ -22,7 +22,7 @@ app.set('trust proxy', 1);
 const SECRET_TOKEN = process.env.SECRET_TOKEN || '420';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'cbd-warenbestand-secret-key-2024';
 // n8n.cloud Test-URL für alle Webhook-POSTs
-const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://n8n.cbdladen.ch/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
+const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://n8n.cbdladen.ch/webhook/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
 
 // Im Speicher Order-Status speichern
 const orderStatusMap = new Map();
