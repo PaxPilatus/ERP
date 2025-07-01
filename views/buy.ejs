@@ -258,8 +258,8 @@
             productLoadHint.style.color = '#007bff';
             
             try {
-                console.log('🔄 Lade Produkte von Google Sheets API...');
-                const response = await fetch('/api/products');
+                console.log('🔄 Lade Produkte von Google Sheets API (force refresh)...');
+                const response = await fetch('/api/products?force=true');
                 
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -410,7 +410,8 @@
                     
                     if (data.n8nResponse && Object.keys(data.n8nResponse).length > 0) {
                         resultHtml += '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">';
-                        resultHtml += '<h4 style="margin: 0 0 10px 0; color: #495057;">🔄 System-Response:</h4>';
+                        resultHtml += '<h4 style="margin: 0 0 10px 0; color: #495057;">🔄 n8n System-Response:</h4>';
+                        resultHtml += '<p><small>Lagerbestand-Updates werden automatisch von n8n verarbeitet</small></p>';
                         if (data.n8nResponse.Lagerbestand !== undefined) {
                             resultHtml += `<p><strong>Neuer Lagerbestand:</strong> ${data.n8nResponse.Lagerbestand}</p>`;
                         }

@@ -22,7 +22,7 @@ app.set('trust proxy', 1);
 const SECRET_TOKEN = process.env.SECRET_TOKEN || '420';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'cbd-warenbestand-secret-key-2024';
 // n8n.cloud Test-URL für alle Webhook-POSTs
-const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
+const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://n8n.cbdladen.ch/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
 
 // Im Speicher Order-Status speichern
 const orderStatusMap = new Map();
@@ -183,6 +183,13 @@ async function getProductsFromSheets() {
 app.get('/api/products', requireAuth, async (req, res) => {
   console.log('📊 API-Anfrage für Produkte aus Google Sheets');
   
+  // Force refresh wenn explizit angefordert
+  const forceRefresh = req.query.force === 'true';
+  if (forceRefresh) {
+    console.log('🔄 Force Refresh: Cache wird geleert');
+    lastProductFetch = 0; // Cache invalidieren
+  }
+  
   try {
     const products = await getProductsFromSheets();
     
@@ -194,7 +201,8 @@ app.get('/api/products', requireAuth, async (req, res) => {
       count: products.length,
       cached: Date.now() - lastProductFetch < 5000 ? false : true, // Innerhalb 5 Sekunden = frisch geladen
       cacheAge: Math.round((Date.now() - lastProductFetch) / 1000),
-      maxCacheAge: Math.round(CACHE_TTL / 1000)
+      maxCacheAge: Math.round(CACHE_TTL / 1000),
+      forceRefresh: forceRefresh
     });
     
   } catch (error) {
@@ -209,42 +217,55 @@ app.get('/api/products', requireAuth, async (req, res) => {
   }
 });
 
-// Test-Route für Google Sheets Verbindung (nur für Development)
+// 🔍 Google Sheets Test-Route (READ-ONLY)
 app.get('/api/test-sheets', requireAuth, async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ error: 'Test-Route nur im Development verfügbar' });
-  }
-  
-  console.log('🧪 Test der Google Sheets Verbindung...');
+  console.log('🧪 Teste Google Sheets Verbindung (READ-ONLY)...');
   
   if (!sheetsModule) {
-    return res.status(500).json({ 
+    return res.json({
       success: false,
       error: 'Google Sheets Modul nicht verfügbar',
-      help: 'npm install google-auth-library googleapis und .env konfigurieren'
+      readonly: true,
+      tests: { 
+        connection: false 
+      }
     });
   }
-  
+
   try {
-    const isConnected = await sheetsModule.testConnection();
+    // Test 1: Verbindung (Lesen)
+    const connectionTest = await sheetsModule.testConnection();
+    console.log(`   📖 Verbindungstest: ${connectionTest ? '✅' : '❌'}`);
     
     res.json({
       success: true,
-      connected: isConnected,
+      message: 'Google Sheets Tests abgeschlossen (READ-ONLY)',
+      readonly: true,
+      note: 'Lagerbestand-Updates werden von n8n verwaltet',
+      tests: {
+        connection: connectionTest
+      },
       config: {
-        hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        hasCredentials: !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_APPLICATION_CREDENTIALS),
         hasSheetId: !!process.env.SHEET_ID,
-        hasRange: !!process.env.RANGE,
-        range: process.env.RANGE || 'nicht konfiguriert',
-        cacheMs: process.env.CACHE_MS || 'Standard (300000)'
-      }
+        authMethod: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ? 'Environment Variables' : 'Credentials File',
+        ranges: {
+          products: process.env.PRODUCTS_RANGE || process.env.RANGE || 'Produkte!A2:A'
+        }
+      },
+      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
+    console.error('❌ Fehler beim Testen von Google Sheets:', error.message);
+    
     res.status(500).json({
       success: false,
-      connected: false,
-      error: error.message
+      error: error.message,
+      readonly: true,
+      tests: { 
+        connection: false 
+      }
     });
   }
 });
@@ -386,8 +407,9 @@ app.post('/buy', requireAuth, async (req, res) => {
     console.log('📤 Sende Daten an n8n Webhook:');
     console.log(`   🌐 URL: ${N8N_TEST_URL}`);
     console.log('   📋 Payload:', JSON.stringify(purchaseData, null, 2));
+    console.log('   💡 Hinweis: Lagerbestand-Updates werden von n8n verwaltet');
     
-    // POST Request an n8n
+    // POST Request an n8n (n8n handhabt die Lagerbestand-Updates)
     const response = await axios.post(
       N8N_TEST_URL,
       purchaseData,
@@ -402,6 +424,7 @@ app.post('/buy', requireAuth, async (req, res) => {
     console.log('✅ n8n Webhook erfolgreich aufgerufen');
     console.log(`   📊 Status: ${response.status}`);
     console.log(`   📝 Response: ${JSON.stringify(response.data)}`);
+    console.log('   🔄 n8n wird jetzt die Lagerbestand-Updates verarbeiten');
     
     // Erfolgsmeldung mit n8n-Daten zurückgeben
     res.json({ 

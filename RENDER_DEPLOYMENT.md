@@ -48,7 +48,7 @@ Im Render Dashboard unter "Environment":
 NODE_ENV=production
 SECRET_TOKEN=420
 SESSION_SECRET=cbd-warenbestand-secret-key-2024
-N8N_TEST_URL=https://paxpilatus.app.n8n.cloud/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9
+N8N_TEST_URL=https://n8n.cbdladen.ch/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9
 ```
 
 **⚠️ WICHTIG für Session-Cookies:**
