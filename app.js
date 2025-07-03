@@ -21,8 +21,71 @@ app.set('trust proxy', 1);
 // Konfiguration
 const SECRET_TOKEN = process.env.SECRET_TOKEN || '420';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'cbd-warenbestand-secret-key-2024';
-// n8n.cloud Test-URL für alle Webhook-POSTs
-const N8N_TEST_URL = process.env.N8N_TEST_URL || 'https://n8n.cbdladen.ch/webhook/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9';
+
+// n8n Webhook-URLs - beide URLs unterstützen
+const N8N_WEBHOOK_URLS = [
+  process.env.N8N_TEST_URL || 'https://n8n.cbdladen.ch/webhook-test/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9',
+  process.env.N8N_PRODUCTION_URL || 'https://n8n.cbdladen.ch/webhook/ca7a41c7-56b3-4e63-9985-6b3e85b9a2f9'
+];
+
+// Für Rückwärtskompatibilität - falls N8N_TEST_URL gesetzt ist, aber nicht beide URLs
+if (process.env.N8N_TEST_URL && !process.env.N8N_PRODUCTION_URL) {
+  const testUrl = process.env.N8N_TEST_URL;
+  const productionUrl = testUrl.replace('/webhook-test/', '/webhook/');
+  N8N_WEBHOOK_URLS[0] = testUrl;
+  N8N_WEBHOOK_URLS[1] = productionUrl;
+}
+
+// Hilfsfunktion für n8n Webhook-Aufrufe mit Fallback
+async function sendToN8nWebhook(data, customHeaders = {}, timeout = 10000) {
+  let lastError;
+  
+  for (let i = 0; i < N8N_WEBHOOK_URLS.length; i++) {
+    const url = N8N_WEBHOOK_URLS[i];
+    const urlType = url.includes('/webhook-test/') ? 'Test' : 'Production';
+    
+    try {
+      console.log(`🔄 Versuche n8n Webhook (${urlType}): ${url}`);
+      
+      // Prüfen ob es FormData ist (für Datei-Uploads)
+      const isFormData = data && typeof data.getHeaders === 'function';
+      
+      const headers = isFormData 
+        ? { ...data.getHeaders(), ...customHeaders }
+        : { 'Content-Type': 'application/json', ...customHeaders };
+      
+      const response = await axios.post(url, data, {
+        headers: headers,
+        timeout: timeout,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+      });
+      
+      console.log(`✅ n8n Webhook erfolgreich (${urlType})`);
+      console.log(`   📊 Status: ${response.status}`);
+      console.log(`   📝 Response: ${JSON.stringify(response.data)}`);
+      
+      return { success: true, response, usedUrl: url, urlType };
+      
+    } catch (error) {
+      console.error(`❌ n8n Webhook fehlgeschlagen (${urlType}): ${url}`);
+      console.error(`   🚨 Error: ${error.message}`);
+      console.error(`   📊 Status: ${error.response?.status || 'Keine Response'}`);
+      console.error(`   📝 Data: ${error.response?.data || 'Keine Daten'}`);
+      
+      lastError = error;
+      
+      // Wenn es die letzte URL ist, den Fehler weiterwerfen
+      if (i === N8N_WEBHOOK_URLS.length - 1) {
+        throw lastError;
+      }
+      
+      console.log(`⚠️  Versuche nächste URL...`);
+    }
+  }
+  
+  throw lastError;
+}
 
 // Im Speicher Order-Status speichern
 const orderStatusMap = new Map();
@@ -45,7 +108,9 @@ const CACHE_TTL = parseInt(process.env.CACHE_MS, 10) || 300000; // 5 Minuten Sta
 console.log('🚀 CBD Warenbestand App wird gestartet...');
 console.log(`📱 Server läuft auf Port: ${PORT}`);
 console.log(`🔐 Login-Token: ${SECRET_TOKEN}`);
-console.log(`🌐 n8n.cloud Test-URL: ${N8N_TEST_URL}`);
+console.log(`🌐 n8n Webhook-URLs (Fallback-Unterstützung):`);
+console.log(`   🧪 Test-URL: ${N8N_WEBHOOK_URLS[0]}`);
+console.log(`   🚀 Production-URL: ${N8N_WEBHOOK_URLS[1]}`);
 
 // Middleware Setup
 app.use(cors()); // CORS für API-Aufrufe
@@ -404,33 +469,24 @@ app.post('/buy', requireAuth, async (req, res) => {
       orderId: orderId
     };
     
-    console.log('📤 Sende Daten an n8n Webhook:');
-    console.log(`   🌐 URL: ${N8N_TEST_URL}`);
+    console.log('📤 Sende Daten an n8n Webhooks (mit Fallback):');
     console.log('   📋 Payload:', JSON.stringify(purchaseData, null, 2));
     console.log('   💡 Hinweis: Lagerbestand-Updates werden von n8n verwaltet');
     
     // POST Request an n8n (n8n handhabt die Lagerbestand-Updates)
-    const response = await axios.post(
-      N8N_TEST_URL,
-      purchaseData,
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        timeout: 10000 // 10 Sekunden Timeout
-      }
-    );
+    const response = await sendToN8nWebhook(purchaseData);
     
-    console.log('✅ n8n Webhook erfolgreich aufgerufen');
-    console.log(`   📊 Status: ${response.status}`);
-    console.log(`   📝 Response: ${JSON.stringify(response.data)}`);
+    console.log(`✅ n8n Webhook erfolgreich aufgerufen (${response.urlType})`);
+    console.log(`   🌐 Verwendete URL: ${response.usedUrl}`);
+    console.log(`   📊 Status: ${response.response.status}`);
+    console.log(`   📝 Response: ${JSON.stringify(response.response.data)}`);
     console.log('   🔄 n8n wird jetzt die Lagerbestand-Updates verarbeiten');
     
     // Erfolgsmeldung mit n8n-Daten zurückgeben
     res.json({ 
       success: true, 
       message: 'Erfolgreich gespeichert!',
-      n8nResponse: response.data,
+      n8nResponse: response.response.data,
       orderDetails: {
         name: name,
         product: product,
@@ -541,34 +597,23 @@ app.post('/restock', requireAuth, upload.single('photo'), async (req, res) => {
     formData.append('filesize', uploadedFile.size.toString());
     formData.append('account', account);
     
-    console.log('📤 Sende Datei an n8n Webhook:');
-    console.log(`   🌐 URL: ${N8N_TEST_URL}`);
+    console.log('📤 Sende Datei an n8n Webhooks (mit Fallback):');
     console.log(`   📁 Datei: ${rechnungFilename} (${uploadedFile.size} Bytes)`);
     console.log(`   💰 Konto: ${account}`);
     
     // POST Request an n8n mit Datei
-    const response = await axios.post(
-      N8N_TEST_URL,
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders()
-        },
-        timeout: 30000, // 30 Sekunden für Datei-Upload
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
-      }
-    );
+    const response = await sendToN8nWebhook(formData, {}, 30000); // 30 Sekunden für Datei-Upload
     
-    console.log('✅ n8n Webhook erfolgreich aufgerufen');
-    console.log(`   📊 Status: ${response.status}`);
-    console.log(`   📝 Response: ${JSON.stringify(response.data)}`);
+    console.log(`✅ n8n Webhook erfolgreich aufgerufen (${response.urlType})`);
+    console.log(`   🌐 Verwendete URL: ${response.usedUrl}`);
+    console.log(`   📊 Status: ${response.response.status}`);
+    console.log(`   📝 Response: ${JSON.stringify(response.response.data)}`);
     
     // JSON-Response für das Frontend zurückgeben
     res.json({ 
       success: true, 
       message: 'Auffüllen erfolgreich! Foto wurde hochgeladen und verarbeitet.',
-      n8nResponse: response.data,
+      n8nResponse: response.response.data,
       uploadDetails: {
         filename: rechnungFilename,
         filesize: uploadedFile.size,
